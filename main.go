@@ -16,25 +16,18 @@ var users []User
 var mu sync.Mutex
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO:  Impliment Home page
-	fmt.Fprintln(w, "this is going to be home page")
+	fmt.Fprintln(w, "this is going so be home page")
 }
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	fmt.Fprintln(w, "get the users in this as a object")
-
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
 }
 
 func InsertUser(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var newUser User
 	err := json.NewDecoder(r.Body).Decode(&newUser)
 	if err != nil {
@@ -43,8 +36,15 @@ func InsertUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mu.Lock()
+	defer mu.Unlock()
+
+	for _, user := range users {
+		if user.Username == newUser.Username {
+			http.Error(w, "User Already Exists", http.StatusConflict)
+			return
+		}
+	}
 	users = append(users, newUser)
-	mu.Unlock()
 
 	fmt.Fprintln(w, "user created done: ", newUser.Username)
 }
